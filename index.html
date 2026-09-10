@@ -629,7 +629,8 @@ body::before {
    SOUND
 ========================================================= */
 
-#soundButton {
+#soundButton,
+#bgmButton {
 
     width:
         100%;
@@ -1184,6 +1185,10 @@ body::before {
             🔊 SOUND : ON
         </button>
 
+        <button id="bgmButton">
+            🎵 BGM : OFF
+        </button>
+
     </div>
 
 
@@ -1614,6 +1619,12 @@ let gameState =
 
 
 let dropTimer = 0;
+
+const LOCK_DELAY_MS = 500;
+const MAX_LOCK_RESETS = 15;
+let lockTimer = 0;
+let lockResetCount = 0;
+let grounded = false;
 
 let lastTime = 0;
 
@@ -2210,6 +2221,10 @@ function createPiece(
 
 
     pieceY = 0;
+
+    grounded = false;
+    lockTimer = 0;
+    lockResetCount = 0;
 
 
     updateGhost();
@@ -3000,6 +3015,8 @@ function movePiece(
 
         updateGhost();
 
+        refreshLockDelay();
+
 
         soundMove();
 
@@ -3086,6 +3103,8 @@ function rotatePiece() {
 
             updateGhost();
 
+            refreshLockDelay();
+
 
             soundRotate();
 
@@ -3096,6 +3115,76 @@ function rotatePiece() {
             return;
 
         }
+
+    }
+
+}
+
+
+function rotatePieceCounterClockwise() {
+
+    if (
+        gameState !== "playing" ||
+        clearAnimationActive
+    ) {
+
+        return;
+
+    }
+
+    const rotated = [];
+
+    for (
+        let y = 0;
+        y < CONFIG.TETRO_SIZE;
+        y++
+    ) {
+
+        rotated[y] = [];
+
+        for (
+            let x = 0;
+            x < CONFIG.TETRO_SIZE;
+            x++
+        ) {
+
+            rotated[y][x] =
+                currentPiece[x][CONFIG.TETRO_SIZE - 1 - y];
+
+        }
+
+    }
+
+    const offsets = [0,-1,1,-2,2];
+
+    for (const offset of offsets) {
+
+        if (canMove(offset, 0, rotated)) {
+
+            pieceX += offset;
+            currentPiece = rotated;
+            updateGhost();
+            refreshLockDelay();
+            soundRotate();
+            draw();
+            return;
+
+        }
+
+    }
+
+}
+
+
+function refreshLockDelay() {
+
+    if (
+        grounded &&
+        lockResetCount < MAX_LOCK_RESETS
+    ) {
+
+        lockTimer = LOCK_DELAY_MS;
+        lockResetCount++;
 
     }
 
@@ -3200,6 +3289,29 @@ function holdPiece() {
    通常落下
 ========================================================= */
 
+function lockPieceAndAdvance() {
+
+    grounded = false;
+    lockTimer = 0;
+    lockResetCount = 0;
+
+    lockCurrentPiece();
+    soundLock();
+
+    const rows = findFullLines();
+
+    if (rows.length > 0) {
+
+        beginLineClear(rows);
+        return;
+
+    }
+
+    spawnNextPiece();
+
+}
+
+
 function dropPiece() {
 
     if (
@@ -3234,46 +3346,13 @@ function dropPiece() {
     }
 
 
-    /*
-        移動できない
-        ↓
-        固定
-    */
+    if (!grounded) {
 
-    lockCurrentPiece();
-
-
-    soundLock();
-
-
-    /*
-        ラインを探す
-    */
-
-    const rows =
-        findFullLines();
-
-
-    if (
-        rows.length > 0
-    ) {
-
-        beginLineClear(
-            rows
-        );
-
-
-        return;
+        grounded = true;
+        lockTimer = LOCK_DELAY_MS;
+        lockResetCount = 0;
 
     }
-
-
-    /*
-        ラインなし
-        → 次のブロック
-    */
-
-    spawnNextPiece();
 
 }
 
@@ -3448,39 +3527,7 @@ function hardDrop() {
         固定
     */
 
-    lockCurrentPiece();
-
-
-    soundLock();
-
-
-    /*
-        ラインチェック
-    */
-
-    const rows =
-        findFullLines();
-
-
-    if (
-        rows.length > 0
-    ) {
-
-        beginLineClear(
-            rows
-        );
-
-
-        return;
-
-    }
-
-
-    /*
-        次へ
-    */
-
-    spawnNextPiece();
+    lockPieceAndAdvance();
 
 
     dropTimer = 0;
@@ -5363,6 +5410,18 @@ function gameLoop(
         gameState === "playing"
     ) {
 
+        if (grounded) {
+
+            lockTimer -= delta;
+
+            if (lockTimer <= 0) {
+
+                lockPieceAndAdvance();
+
+            }
+
+        }
+
         /*
             60fps基準でGを計算
         */
@@ -5394,6 +5453,8 @@ function gameLoop(
             gameState === "playing" &&
 
             !clearAnimationActive &&
+
+            !grounded &&
 
             gravitySteps < 20
 
@@ -5440,12 +5501,12 @@ function(event) {
 
 
     /*
-        Z
+        Space
         ハードドロップ
     */
 
     if (
-        event.code === "KeyZ"
+        event.code === "Space"
     ) {
 
         event.preventDefault();
@@ -5559,6 +5620,27 @@ function(event) {
         event.preventDefault();
 
         rotatePiece();
+
+        return;
+
+    }
+
+
+    /*
+        Control = 反時計回り
+    */
+
+    if (
+        event.key === "Control"
+    ) {
+
+        event.preventDefault();
+
+        if (!event.repeat) {
+
+            rotatePieceCounterClockwise();
+
+        }
 
         return;
 
