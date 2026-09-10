@@ -629,8 +629,7 @@ body::before {
    SOUND
 ========================================================= */
 
-#soundButton,
-#bgmButton {
+#soundButton {
 
     width:
         100%;
@@ -1166,7 +1165,16 @@ body::before {
 
             <div>
 
-                <span class="key">Z</span>
+                <span class="key">CTRL</span>
+
+                左回転
+
+            </div>
+
+
+            <div>
+
+                <span class="key">SPACE</span>
 
                 一気に落下
 
@@ -1183,10 +1191,6 @@ body::before {
 
         <button id="soundButton">
             🔊 SOUND : ON
-        </button>
-
-        <button id="bgmButton">
-            🎵 BGM : OFF
         </button>
 
     </div>
@@ -3398,36 +3402,13 @@ function softDrop() {
     }
 
 
-    /*
-        下に行けない
-        → 即固定
-    */
+    if (!grounded) {
 
-    lockCurrentPiece();
-
-
-    soundLock();
-
-
-    const rows =
-        findFullLines();
-
-
-    if (
-        rows.length > 0
-    ) {
-
-        beginLineClear(
-            rows
-        );
-
-
-        return;
+        grounded = true;
+        lockTimer = LOCK_DELAY_MS;
+        lockResetCount = 0;
 
     }
-
-
-    spawnNextPiece();
 
 }
 
