@@ -1,0 +1,5797 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+
+<meta charset="UTF-8">
+
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+>
+
+<title>NEON TETRIS</title>
+
+
+<style>
+
+/* =========================================================
+   基本設定
+========================================================= */
+
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    width: 100%;
+    height: 100%;
+}
+
+body {
+
+    margin: 0;
+
+    overflow: hidden;
+
+    font-family:
+        Arial,
+        "Yu Gothic",
+        sans-serif;
+
+    color: white;
+
+    background:
+
+        radial-gradient(
+            circle at 50% 20%,
+            #123b68 0%,
+            transparent 42%
+        ),
+
+        linear-gradient(
+            135deg,
+            #020812,
+            #06182c 45%,
+            #02050c
+        );
+}
+
+
+/* =========================================================
+   背景スキャンライン
+========================================================= */
+
+body::before {
+
+    content: "";
+
+    position: fixed;
+
+    inset: 0;
+
+    pointer-events: none;
+
+    background:
+
+        repeating-linear-gradient(
+            0deg,
+            rgba(0,200,255,0.025) 0px,
+            rgba(0,200,255,0.025) 1px,
+            transparent 1px,
+            transparent 4px
+        );
+
+    animation:
+        scan 6s linear infinite;
+}
+
+
+@keyframes scan {
+
+    from {
+        transform:
+            translateY(0);
+    }
+
+    to {
+        transform:
+            translateY(4px);
+    }
+
+}
+
+
+/* =========================================================
+   ゲーム全体
+========================================================= */
+
+#game-container {
+
+    width: 100%;
+
+    height: 100vh;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    position: relative;
+}
+
+
+/* =========================================================
+   RANKING
+========================================================= */
+
+#ranking-panel {
+
+    position: fixed;
+
+    left: calc(50% - 475px);
+
+    top: 50%;
+
+    transform:
+        translateY(-50%);
+
+    width: 190px;
+
+    padding: 14px;
+
+    background:
+        rgba(0,20,40,0.84);
+
+    border:
+        1px solid
+        rgba(0,210,255,0.45);
+
+    box-shadow:
+
+        inset 0 0 12px
+        rgba(0,150,255,0.1),
+
+        0 0 20px
+        rgba(0,180,255,0.12);
+
+    z-index: 5;
+}
+
+
+.ranking-title {
+
+    text-align:
+        center;
+
+    font-size:
+        14px;
+
+    letter-spacing:
+        3px;
+
+    color:
+        #68e8ff;
+
+    margin-bottom:
+        10px;
+
+    text-shadow:
+        0 0 8px
+        rgba(0,220,255,0.65);
+}
+
+
+.ranking-table {
+
+    width: 100%;
+
+    border-collapse:
+        collapse;
+
+    table-layout:
+        fixed;
+}
+
+
+.ranking-table th {
+
+    font-size:
+        9px;
+
+    font-weight:
+        normal;
+
+    color:
+        #5793a8;
+
+    padding:
+        4px 2px;
+
+    border-bottom:
+        1px solid
+        rgba(0,210,255,0.25);
+}
+
+
+.ranking-table td {
+
+    font-size:
+        11px;
+
+    padding:
+        5px 2px;
+
+    border-bottom:
+        1px solid
+        rgba(0,210,255,0.08);
+
+    white-space:
+        nowrap;
+
+    overflow:
+        hidden;
+
+    text-overflow:
+        ellipsis;
+}
+
+
+.ranking-table th:first-child,
+.ranking-table td:first-child {
+
+    width:
+        28px;
+
+    text-align:
+        center;
+}
+
+
+.ranking-table th:nth-child(2),
+.ranking-table td:nth-child(2) {
+
+    text-align:
+        left;
+}
+
+
+.ranking-table th:last-child,
+.ranking-table td:last-child {
+
+    text-align:
+        right;
+}
+
+
+.rank-number {
+
+    color:
+        #8adfff;
+
+    font-weight:
+        bold;
+}
+
+
+.rank-empty {
+
+    color:
+        #36546a;
+
+    text-align:
+        center !important;
+}
+
+
+.rank-top {
+
+    color:
+        #ffe45c;
+
+    text-shadow:
+        0 0 6px
+        rgba(255,210,0,0.35);
+}
+
+
+.rank-score {
+
+    color:
+        #d9f8ff;
+
+    font-family:
+        "Courier New",
+        monospace;
+}
+
+
+.ranking-note {
+
+    margin-top:
+        8px;
+
+    text-align:
+        center;
+
+    font-size:
+        9px;
+
+    color:
+        #53788a;
+}
+
+
+/* =========================================================
+   ゲームパネル
+========================================================= */
+
+#game-panel {
+
+    position: relative;
+
+    display: flex;
+
+    gap: 14px;
+
+    padding: 12px;
+
+    border:
+        2px solid
+        rgba(0,220,255,0.65);
+
+    background:
+        rgba(2,10,22,0.84);
+
+    box-shadow:
+
+        0 0 20px
+        rgba(0,220,255,0.35),
+
+        0 0 50px
+        rgba(0,120,255,0.18);
+}
+
+
+/* =========================================================
+   ゲームフィールド
+========================================================= */
+
+#gameCanvas {
+
+    display: block;
+
+    background:
+        #02060b;
+
+    border:
+        2px solid
+        #19d9ff;
+
+    box-shadow:
+
+        0 0 8px
+        #00d9ff,
+
+        0 0 22px
+        rgba(0,200,255,0.45),
+
+        inset 0 0 25px
+        rgba(0,100,180,0.35);
+}
+
+
+/* =========================================================
+   サイドパネル
+========================================================= */
+
+#side-panel {
+
+    width:
+        175px;
+
+    display:
+        flex;
+
+    flex-direction:
+        column;
+
+    gap:
+        8px;
+}
+
+
+.panel-box {
+
+    padding:
+        10px;
+
+    background:
+        rgba(0,20,40,0.84);
+
+    border:
+        1px solid
+        rgba(0,210,255,0.45);
+
+    box-shadow:
+        inset 0 0 12px
+        rgba(0,150,255,0.1);
+}
+
+
+.panel-title {
+
+    font-size:
+        11px;
+
+    letter-spacing:
+        2px;
+
+    color:
+        #68e8ff;
+
+    margin-bottom:
+        5px;
+}
+
+
+/* =========================================================
+   SCORE
+========================================================= */
+
+#score {
+
+    font-size:
+        25px;
+
+    font-weight:
+        bold;
+
+    letter-spacing:
+        2px;
+
+    text-shadow:
+        0 0 10px
+        #00d9ff;
+}
+
+
+/* =========================================================
+   LEVEL
+========================================================= */
+
+#level {
+
+    font-size:
+        20px;
+
+    font-weight:
+        bold;
+
+    color:
+        #ffdf4c;
+
+    text-shadow:
+        0 0 8px
+        #ffbf00;
+}
+
+
+/* =========================================================
+   HOLD
+========================================================= */
+
+#holdCanvas {
+
+    display:
+        block;
+
+    width:
+        100px;
+
+    height:
+        100px;
+
+    margin:
+        2px auto 0;
+
+    background:
+        #02060b;
+
+    border:
+        1px solid
+        rgba(0,210,255,0.35);
+}
+
+
+.hold-help {
+
+    text-align:
+        center;
+
+    margin-top:
+        5px;
+
+    font-size:
+        10px;
+
+    color:
+        #7edfff;
+}
+
+
+/* =========================================================
+   CONTROL
+========================================================= */
+
+.controls {
+
+    font-size:
+        11px;
+
+    line-height:
+        1.65;
+
+    color:
+        #c7e9ff;
+}
+
+
+.key {
+
+    display:
+        inline-block;
+
+    min-width:
+        24px;
+
+    padding:
+        1px 4px;
+
+    margin-right:
+        2px;
+
+    text-align:
+        center;
+
+    border:
+        1px solid
+        #5adfff;
+
+    background:
+        #0a2437;
+}
+
+
+/* =========================================================
+   ボタン
+========================================================= */
+
+.game-button {
+
+    width:
+        100%;
+
+    padding:
+        9px;
+
+    border:
+        1px solid
+        #1fdcff;
+
+    background:
+
+        linear-gradient(
+            180deg,
+            #0b4664,
+            #061d31
+        );
+
+    color:
+        white;
+
+    font-weight:
+        bold;
+
+    cursor:
+        pointer;
+
+    transition:
+        0.15s;
+}
+
+
+.game-button:hover {
+
+    background:
+
+        linear-gradient(
+            180deg,
+            #0d668f,
+            #083351
+        );
+
+    box-shadow:
+        0 0 12px
+        rgba(0,220,255,0.5);
+}
+
+
+.game-button:active {
+
+    transform:
+        scale(0.98);
+}
+
+
+/* =========================================================
+   SOUND
+========================================================= */
+
+#soundButton {
+
+    width:
+        100%;
+
+    padding:
+        8px;
+
+    border:
+        1px solid
+        #1fdcff;
+
+    background:
+        #072238;
+
+    color:
+        white;
+
+    cursor:
+        pointer;
+
+    font-weight:
+        bold;
+}
+
+
+/* =========================================================
+   オーバーレイ
+========================================================= */
+
+.overlay {
+
+    position:
+        absolute;
+
+    inset: 0;
+
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    justify-content:
+        center;
+
+    background:
+        rgba(0,5,14,0.88);
+
+    z-index:
+        100;
+}
+
+
+.overlay.hidden {
+
+    display:
+        none;
+}
+
+
+/* =========================================================
+   メニュー
+========================================================= */
+
+.menu {
+
+    width:
+        min(400px,88%);
+
+    padding:
+        28px;
+
+    text-align:
+        center;
+
+    border:
+        2px solid
+        #18dfff;
+
+    background:
+
+        linear-gradient(
+            180deg,
+            rgba(8,30,55,0.97),
+            rgba(2,10,20,0.99)
+        );
+
+    box-shadow:
+
+        0 0 20px
+        rgba(0,220,255,0.5),
+
+        inset 0 0 30px
+        rgba(0,120,255,0.15);
+}
+
+
+/* =========================================================
+   メッセージ
+========================================================= */
+
+.start-message {
+
+    margin:
+        12px 0;
+
+    padding:
+        10px;
+
+    border-top:
+        1px solid
+        rgba(0,220,255,0.35);
+
+    border-bottom:
+        1px solid
+        rgba(0,220,255,0.35);
+}
+
+
+/* =========================================================
+   名前入力
+========================================================= */
+
+.name-input {
+
+    width:
+        100%;
+
+    padding:
+        10px;
+
+    margin:
+        0 0 10px 0;
+
+    border:
+        1px solid
+        #1fdcff;
+
+    background:
+        #041321;
+
+    color:
+        white;
+
+    text-align:
+        center;
+
+    font-size:
+        15px;
+
+    outline:
+        none;
+}
+
+
+.name-input:focus {
+
+    border-color:
+        #7feeff;
+
+    box-shadow:
+        0 0 10px
+        rgba(0,220,255,0.35);
+}
+
+
+.name-input::placeholder {
+
+    color:
+        #607f8c;
+
+    opacity:
+        1;
+}
+
+
+/* =========================================================
+   登録ボタン
+========================================================= */
+
+.register-button-row {
+
+    display:
+        flex;
+
+    gap:
+        8px;
+
+    margin-top:
+        5px;
+}
+
+
+.register-button-row .game-button {
+
+    flex:
+        1;
+}
+
+
+.skip-button {
+
+    border-color:
+        #7b919c;
+
+    background:
+
+        linear-gradient(
+            180deg,
+            #26343c,
+            #121b20
+        );
+}
+
+
+.skip-button:hover {
+
+    background:
+
+        linear-gradient(
+            180deg,
+            #364852,
+            #18252b
+        );
+
+    box-shadow:
+        0 0 10px
+        rgba(150,180,190,0.25);
+}
+
+
+/* =========================================================
+   GAME OVER
+========================================================= */
+
+.game-over-title {
+
+    font-size:
+        42px;
+
+    color:
+        #ff4c4c;
+
+    text-shadow:
+
+        0 0 8px
+        #ff0000,
+
+        0 0 20px
+        #ff0000;
+
+    margin-bottom:
+        15px;
+}
+
+
+.final-score {
+
+    font-size:
+        24px;
+
+    margin-bottom:
+        15px;
+}
+
+
+/* =========================================================
+   注意表示
+========================================================= */
+
+.registration-note {
+
+    margin-top:
+        12px;
+
+    font-size:
+        10px;
+
+    color:
+        #7898a8;
+}
+
+
+/* =========================================================
+   画面サイズ調整
+========================================================= */
+
+@media (max-height: 700px) {
+
+    #game-panel {
+
+        transform:
+            scale(0.85);
+    }
+
+    #ranking-panel {
+
+        transform:
+            translateY(-50%)
+            scale(0.85);
+
+        transform-origin:
+            center right;
+    }
+
+}
+
+
+@media (max-height: 600px) {
+
+    #game-panel {
+
+        transform:
+            scale(0.72);
+    }
+
+    #ranking-panel {
+
+        transform:
+            translateY(-50%)
+            scale(0.72);
+    }
+
+}
+
+
+@media (max-width: 1100px) {
+
+    #ranking-panel {
+
+        left:
+            10px;
+
+        transform:
+            translateY(-50%)
+            scale(0.85);
+
+        transform-origin:
+            left center;
+    }
+
+}
+
+
+@media (max-width: 700px) {
+
+    #ranking-panel {
+
+        display:
+            none;
+    }
+
+    #game-panel {
+
+        transform:
+            scale(0.75);
+    }
+
+}
+
+</style>
+
+</head>
+
+
+<body>
+
+
+<div id="game-container">
+
+
+<!-- =====================================================
+     RANKING
+===================================================== -->
+
+<div id="ranking-panel">
+
+    <div class="ranking-title">
+        RANKING
+    </div>
+
+
+    <table class="ranking-table">
+
+        <thead>
+
+            <tr>
+
+                <th>#</th>
+
+                <th>NAME</th>
+
+                <th>SCORE</th>
+
+            </tr>
+
+        </thead>
+
+
+        <tbody id="rankingBody">
+        </tbody>
+
+    </table>
+
+
+    <div class="ranking-note">
+        TOP 10
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+     ゲームパネル
+===================================================== -->
+
+<div id="game-panel">
+
+
+<!-- =====================================================
+     ゲーム画面
+===================================================== -->
+
+<canvas id="gameCanvas"></canvas>
+
+
+<!-- =====================================================
+     サイド
+===================================================== -->
+
+<div id="side-panel">
+
+
+    <!-- SCORE -->
+
+    <div class="panel-box">
+
+        <div class="panel-title">
+            SCORE
+        </div>
+
+        <div id="score">
+            000000
+        </div>
+
+    </div>
+
+
+    <!-- LEVEL -->
+
+    <div class="panel-box">
+
+        <div class="panel-title">
+            LEVEL
+        </div>
+
+        <div id="level">
+            1
+        </div>
+
+    </div>
+
+
+    <!-- HOLD -->
+
+    <div class="panel-box">
+
+        <div class="panel-title">
+            HOLD
+        </div>
+
+        <canvas
+            id="holdCanvas"
+            width="100"
+            height="100">
+        </canvas>
+
+        <div class="hold-help">
+            SHIFTでホールド
+        </div>
+
+    </div>
+
+
+    <!-- 操作説明 -->
+
+    <div class="panel-box">
+
+        <div class="panel-title">
+            CONTROL
+        </div>
+
+
+        <div class="controls">
+
+            <div>
+
+                <span class="key">←</span>
+
+                <span class="key">→</span>
+
+                移動
+
+            </div>
+
+
+            <div>
+
+                <span class="key">↓</span>
+
+                高速落下
+
+            </div>
+
+
+            <div>
+
+                <span class="key">↑</span>
+
+                回転
+
+            </div>
+
+
+            <div>
+
+                <span class="key">SHIFT</span>
+
+                ホールド
+
+            </div>
+
+
+            <div>
+
+                <span class="key">Z</span>
+
+                一気に落下
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- SOUND -->
+
+    <div class="panel-box">
+
+        <button id="soundButton">
+            🔊 SOUND : ON
+        </button>
+
+    </div>
+
+
+</div>
+
+
+<!-- =====================================================
+     START SCREEN
+===================================================== -->
+
+<div
+    id="startOverlay"
+    class="overlay">
+
+    <div class="menu">
+
+        <button
+            id="startButton"
+            class="game-button">
+
+            ▶ START GAME
+
+        </button>
+
+
+        <div class="start-message">
+
+            クリックしてゲームスタート
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+     GAME OVER / SCORE REGISTER
+===================================================== -->
+
+<div
+    id="gameOverOverlay"
+    class="overlay hidden">
+
+    <div class="menu">
+
+
+        <div class="game-over-title">
+
+            GAME OVER
+
+        </div>
+
+
+        <div class="final-score">
+
+            SCORE :
+
+            <span id="finalScore">
+                0
+            </span>
+
+        </div>
+
+
+        <!-- 名前入力 -->
+
+        <input
+            id="nameInput"
+            class="name-input"
+            type="text"
+            maxlength="12"
+            placeholder="your Name"
+            autocomplete="off">
+
+
+        <!-- 登録ボタン -->
+
+        <div class="register-button-row">
+
+            <button
+                id="registerButton"
+                class="game-button">
+
+                スコア登録する
+
+            </button>
+
+
+            <button
+                id="skipRegisterButton"
+                class="game-button skip-button">
+
+                スコア登録しない
+
+            </button>
+
+        </div>
+
+
+        <div class="registration-note">
+
+            スコア登録は一人一回にしてください。
+
+        </div>
+
+
+    </div>
+
+</div>
+
+
+</div>
+
+</div>
+
+
+<script>
+
+
+/* =========================================================
+   ランキング設定
+========================================================= */
+
+/*
+    普段は false
+
+    ランキングをリセットしたいときだけ
+    true に変更して一度ページを読み込み、
+    リセット後に false に戻してください。
+*/
+
+const RESET_RANKING = false;
+
+
+/*
+    ランキング保存キー
+*/
+
+const RANKING_STORAGE_KEY =
+    "neonTetrisRanking";
+
+
+/* =========================================================
+   ゲーム設定
+========================================================= */
+
+const CONFIG = {
+
+    FIELD_COLS:
+        10,
+
+    FIELD_ROWS:
+        20,
+
+    BLOCK_SIZE:
+        25,
+
+    TETRO_SIZE:
+        4,
+
+    INITIAL_DROP_INTERVAL:
+        600,
+
+    MIN_DROP_INTERVAL:
+        80,
+
+    HARD_DROP_EFFECT_TIME:
+        180,
+
+    LINE_CLEAR_TIME:
+        280
+
+};
+
+
+/* =========================================================
+   DOM
+========================================================= */
+
+const canvas =
+    document.getElementById(
+        "gameCanvas"
+    );
+
+
+const ctx =
+    canvas.getContext(
+        "2d"
+    );
+
+
+const holdCanvas =
+    document.getElementById(
+        "holdCanvas"
+    );
+
+
+const holdCtx =
+    holdCanvas.getContext(
+        "2d"
+    );
+
+
+const scoreElement =
+    document.getElementById(
+        "score"
+    );
+
+
+const levelElement =
+    document.getElementById(
+        "level"
+    );
+
+
+const startOverlay =
+    document.getElementById(
+        "startOverlay"
+    );
+
+
+const gameOverOverlay =
+    document.getElementById(
+        "gameOverOverlay"
+    );
+
+
+const finalScoreElement =
+    document.getElementById(
+        "finalScore"
+    );
+
+
+const startButton =
+    document.getElementById(
+        "startButton"
+    );
+
+
+const registerButton =
+    document.getElementById(
+        "registerButton"
+    );
+
+
+const skipRegisterButton =
+    document.getElementById(
+        "skipRegisterButton"
+    );
+
+
+const nameInput =
+    document.getElementById(
+        "nameInput"
+    );
+
+
+const soundButton =
+    document.getElementById(
+        "soundButton"
+    );
+
+
+const rankingBody =
+    document.getElementById(
+        "rankingBody"
+    );
+
+
+canvas.width =
+    CONFIG.FIELD_COLS *
+    CONFIG.BLOCK_SIZE;
+
+
+canvas.height =
+    CONFIG.FIELD_ROWS *
+    CONFIG.BLOCK_SIZE;
+
+
+/* =========================================================
+   色
+========================================================= */
+
+const TETRO_COLORS = [
+
+    "#000000",
+
+    "#16E0FF",
+
+    "#FF9D00",
+
+    "#3787FF",
+
+    "#D34CFF",
+
+    "#FFE600",
+
+    "#FF4040",
+
+    "#42E66B"
+
+];
+
+
+/* =========================================================
+   テトロミノ
+========================================================= */
+
+const TETRO_TYPES = [
+
+    [],
+
+
+    /* I */
+
+    [
+        [0,0,0,0],
+        [1,1,1,1],
+        [0,0,0,0],
+        [0,0,0,0]
+    ],
+
+
+    /* L */
+
+    [
+        [0,1,0,0],
+        [0,1,0,0],
+        [0,1,1,0],
+        [0,0,0,0]
+    ],
+
+
+    /* J */
+
+    [
+        [0,0,1,0],
+        [0,0,1,0],
+        [0,1,1,0],
+        [0,0,0,0]
+    ],
+
+
+    /* T */
+
+    [
+        [0,1,0,0],
+        [0,1,1,0],
+        [0,1,0,0],
+        [0,0,0,0]
+    ],
+
+
+    /* O */
+
+    [
+        [0,0,0,0],
+        [0,1,1,0],
+        [0,1,1,0],
+        [0,0,0,0]
+    ],
+
+
+    /* Z */
+
+    [
+        [0,0,0,0],
+        [1,1,0,0],
+        [0,1,1,0],
+        [0,0,0,0]
+    ],
+
+
+    /* S */
+
+    [
+        [0,0,0,0],
+        [0,1,1,0],
+        [1,1,0,0],
+        [0,0,0,0]
+    ]
+
+];
+
+
+/* =========================================================
+   ゲーム状態
+========================================================= */
+
+let field = [];
+
+let currentPiece = null;
+
+let currentType = 0;
+
+let pieceX = 0;
+
+let pieceY = 0;
+
+
+let score = 0;
+
+let totalLines = 0;
+
+let level = 1;
+
+
+/*
+    現在のレベルになってから
+    消したライン数
+
+    10ラインごとにレベルアップ
+*/
+
+let linesAtLevelStart = 0;
+
+
+/*
+    G計算用
+*/
+
+let gravityAccumulator = 0;
+
+
+let gameState =
+    "title";
+
+
+let dropTimer = 0;
+
+let lastTime = 0;
+
+
+/* =========================================================
+   HOLD
+========================================================= */
+
+let holdType = 0;
+
+let holdUsed = false;
+
+
+/* =========================================================
+   7種類バッグ
+========================================================= */
+
+let pieceBag = [];
+
+
+/* =========================================================
+   ゴースト
+========================================================= */
+
+let ghostY = 0;
+
+
+/* =========================================================
+   ハードドロップエフェクト
+========================================================= */
+
+let hardDropEffectBlocks = [];
+
+let hardDropEffectStart = 0;
+
+
+/* =========================================================
+   ライン消去
+========================================================= */
+
+let clearingRows = [];
+
+let clearAnimationActive =
+    false;
+
+let clearAnimationStart = 0;
+
+
+/* =========================================================
+   パーティクル
+========================================================= */
+
+let particles = [];
+
+
+/* =========================================================
+   コンボ文字
+========================================================= */
+
+let comboText = {
+
+    text: "",
+
+    alpha: 0,
+
+    y: 0
+
+};
+
+
+/* =========================================================
+   画面揺れ
+========================================================= */
+
+let screenShake = {
+
+    x: 0,
+
+    y: 0,
+
+    intensity: 0
+
+};
+
+
+/* =========================================================
+   サウンド
+========================================================= */
+
+let soundEnabled = true;
+
+let audioContext = null;
+
+
+/* =========================================================
+   ランキングリセット
+========================================================= */
+
+if (
+    RESET_RANKING
+) {
+
+    localStorage.removeItem(
+        RANKING_STORAGE_KEY
+    );
+
+}
+
+
+/* =========================================================
+   ランキング取得
+========================================================= */
+
+function getRanking() {
+
+    try {
+
+        const data =
+            localStorage.getItem(
+                RANKING_STORAGE_KEY
+            );
+
+
+        if (!data) {
+
+            return [];
+
+        }
+
+
+        const ranking =
+            JSON.parse(data);
+
+
+        if (
+            !Array.isArray(ranking)
+        ) {
+
+            return [];
+
+        }
+
+
+        return ranking
+
+            .filter(
+
+                entry =>
+
+                    entry &&
+                    typeof entry.name ===
+                        "string" &&
+                    Number.isFinite(
+                        Number(entry.score)
+                    )
+
+            )
+
+            .map(
+
+                entry => ({
+
+                    name:
+                        entry.name,
+
+                    score:
+                        Number(entry.score)
+
+                })
+
+            )
+
+            .sort(
+
+                (a,b) =>
+                    b.score -
+                    a.score
+
+            )
+
+            .slice(
+                0,
+                10
+            );
+
+    }
+
+    catch (error) {
+
+        console.log(
+            "Ranking load error:",
+            error
+        );
+
+
+        return [];
+
+    }
+
+}
+
+
+/* =========================================================
+   ランキング保存
+========================================================= */
+
+function saveRanking(
+    ranking
+) {
+
+    try {
+
+        localStorage.setItem(
+
+            RANKING_STORAGE_KEY,
+
+            JSON.stringify(
+                ranking
+            )
+
+        );
+
+    }
+
+    catch (error) {
+
+        console.log(
+            "Ranking save error:",
+            error
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   ランキング表示
+========================================================= */
+
+function updateRankingDisplay() {
+
+    const ranking =
+        getRanking();
+
+
+    rankingBody.innerHTML =
+        "";
+
+
+    for (
+        let i = 0;
+        i < 10;
+        i++
+    ) {
+
+        const row =
+            document.createElement(
+                "tr"
+            );
+
+
+        const rankCell =
+            document.createElement(
+                "td"
+            );
+
+
+        const nameCell =
+            document.createElement(
+                "td"
+            );
+
+
+        const scoreCell =
+            document.createElement(
+                "td"
+            );
+
+
+        rankCell.className =
+            "rank-number";
+
+
+        scoreCell.className =
+            "rank-score";
+
+
+        rankCell.textContent =
+            i + 1;
+
+
+        if (
+            ranking[i]
+        ) {
+
+            nameCell.textContent =
+                ranking[i].name;
+
+
+            scoreCell.textContent =
+                ranking[i].score.toLocaleString();
+
+
+            if (
+                i < 3
+            ) {
+
+                rankCell.classList.add(
+                    "rank-top"
+                );
+
+
+                nameCell.classList.add(
+                    "rank-top"
+                );
+
+
+                scoreCell.classList.add(
+                    "rank-top"
+                );
+
+            }
+
+        }
+
+        else {
+
+            nameCell.textContent =
+                "------";
+
+
+            scoreCell.textContent =
+                "------";
+
+
+            nameCell.classList.add(
+                "rank-empty"
+            );
+
+
+            scoreCell.classList.add(
+                "rank-empty"
+            );
+
+        }
+
+
+        row.appendChild(
+            rankCell
+        );
+
+
+        row.appendChild(
+            nameCell
+        );
+
+
+        row.appendChild(
+            scoreCell
+        );
+
+
+        rankingBody.appendChild(
+            row
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   スコア登録
+========================================================= */
+
+function registerScore(
+    name,
+    targetScore
+) {
+
+    const cleanName =
+        name.trim();
+
+
+    if (
+        cleanName.length === 0
+    ) {
+
+        return false;
+
+    }
+
+
+    const ranking =
+        getRanking();
+
+
+    ranking.push({
+
+        name:
+            cleanName,
+
+        score:
+            targetScore
+
+    });
+
+
+    ranking.sort(
+
+        (a,b) =>
+            b.score -
+            a.score
+
+    );
+
+
+    const top10 =
+        ranking.slice(
+            0,
+            10
+        );
+
+
+    saveRanking(
+        top10
+    );
+
+
+    updateRankingDisplay();
+
+
+    return true;
+
+}
+
+
+/* =========================================================
+   フィールド
+========================================================= */
+
+function createField() {
+
+    field = [];
+
+
+    for (
+        let y = 0;
+        y < CONFIG.FIELD_ROWS;
+        y++
+    ) {
+
+        field[y] = [];
+
+
+        for (
+            let x = 0;
+            x < CONFIG.FIELD_COLS;
+            x++
+        ) {
+
+            field[y][x] = 0;
+
+        }
+
+    }
+
+}
+
+
+/* =========================================================
+   7種類バッグ
+========================================================= */
+
+function refillBag() {
+
+    pieceBag = [
+
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+
+    ];
+
+
+    /*
+        Fisher-Yates
+    */
+
+    for (
+        let i =
+            pieceBag.length - 1;
+
+        i > 0;
+
+        i--
+    ) {
+
+        const j =
+            Math.floor(
+
+                Math.random() *
+                (i + 1)
+
+            );
+
+
+        [
+
+            pieceBag[i],
+
+            pieceBag[j]
+
+        ] = [
+
+            pieceBag[j],
+
+            pieceBag[i]
+
+        ];
+
+    }
+
+}
+
+
+function getNextType() {
+
+    if (
+        pieceBag.length === 0
+    ) {
+
+        refillBag();
+
+    }
+
+
+    return pieceBag.pop();
+
+}
+
+
+/* =========================================================
+   行列コピー
+========================================================= */
+
+function cloneMatrix(
+    matrix
+) {
+
+    return matrix.map(
+        row => [...row]
+    );
+
+}
+
+
+/* =========================================================
+   ブロック作成
+========================================================= */
+
+function createPiece(
+    forcedType = null
+) {
+
+    currentType =
+
+        forcedType !== null
+            ? forcedType
+            : getNextType();
+
+
+    currentPiece =
+
+        cloneMatrix(
+
+            TETRO_TYPES[
+                currentType
+            ]
+
+        );
+
+
+    pieceX =
+
+        Math.floor(
+            CONFIG.FIELD_COLS / 2
+        ) - 2;
+
+
+    pieceY = 0;
+
+
+    updateGhost();
+
+}
+
+
+/* =========================================================
+   オーディオ初期化
+========================================================= */
+
+function initAudio() {
+
+    try {
+
+        if (
+            !audioContext
+        ) {
+
+            const AudioContextClass =
+
+                window.AudioContext ||
+                window.webkitAudioContext;
+
+
+            if (
+                !AudioContextClass
+            ) {
+
+                return;
+
+            }
+
+
+            audioContext =
+                new AudioContextClass();
+
+        }
+
+
+        if (
+            audioContext.state ===
+            "suspended"
+        ) {
+
+            audioContext.resume();
+
+        }
+
+    }
+
+    catch (error) {
+
+        console.log(
+            "Audio error:",
+            error
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   サウンド再生
+========================================================= */
+
+function playSound(
+    frequency,
+    duration = 0.08,
+    type = "square",
+    volume = 0.04
+) {
+
+    if (
+        !soundEnabled
+    ) {
+
+        return;
+
+    }
+
+
+    initAudio();
+
+
+    if (
+        !audioContext
+    ) {
+
+        return;
+
+    }
+
+
+    try {
+
+        const oscillator =
+            audioContext.createOscillator();
+
+
+        const gain =
+            audioContext.createGain();
+
+
+        oscillator.type =
+            type;
+
+
+        oscillator.frequency.value =
+            frequency;
+
+
+        gain.gain.setValueAtTime(
+
+            volume,
+
+            audioContext.currentTime
+
+        );
+
+
+        gain.gain.exponentialRampToValueAtTime(
+
+            0.001,
+
+            audioContext.currentTime +
+            duration
+
+        );
+
+
+        oscillator.connect(
+            gain
+        );
+
+
+        gain.connect(
+            audioContext.destination
+        );
+
+
+        oscillator.start();
+
+
+        oscillator.stop(
+
+            audioContext.currentTime +
+            duration
+
+        );
+
+    }
+
+    catch (error) {
+
+        console.log(
+            "Sound error:",
+            error
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   効果音
+========================================================= */
+
+function soundMove() {
+
+    playSound(
+        260,
+        0.04,
+        "square",
+        0.025
+    );
+
+}
+
+
+function soundRotate() {
+
+    playSound(
+        500,
+        0.07,
+        "triangle",
+        0.04
+    );
+
+}
+
+
+function soundLock() {
+
+    playSound(
+        180,
+        0.08,
+        "square",
+        0.05
+    );
+
+}
+
+
+function soundHardDrop() {
+
+    playSound(
+        110,
+        0.10,
+        "sawtooth",
+        0.06
+    );
+
+
+    setTimeout(
+
+        () => {
+
+            playSound(
+                220,
+                0.08,
+                "square",
+                0.035
+            );
+
+        },
+
+        45
+
+    );
+
+}
+
+
+function soundHold() {
+
+    playSound(
+        650,
+        0.08,
+        "triangle",
+        0.05
+    );
+
+}
+
+
+function soundLineClear(
+    count
+) {
+
+    const notes = {
+
+        1:
+            [500],
+
+        2:
+            [500,650],
+
+        3:
+            [500,650,800],
+
+        4:
+            [
+                500,
+                650,
+                800,
+                1000
+            ]
+
+    };
+
+
+    const sequence =
+        notes[count] ||
+        notes[4];
+
+
+    sequence.forEach(
+
+        (
+            frequency,
+            index
+        ) => {
+
+            setTimeout(
+
+                () => {
+
+                    playSound(
+
+                        frequency,
+
+                        0.18,
+
+                        "triangle",
+
+                        0.06
+
+                    );
+
+                },
+
+                index * 70
+
+            );
+
+        }
+
+    );
+
+}
+
+
+function soundGameOver() {
+
+    playSound(
+        220,
+        0.2,
+        "sawtooth",
+        0.05
+    );
+
+
+    setTimeout(
+
+        () => {
+
+            playSound(
+                130,
+                0.35,
+                "sawtooth",
+                0.04
+            );
+
+        },
+
+        180
+
+    );
+
+}
+
+
+function soundStart() {
+
+    playSound(
+        400,
+        0.08,
+        "triangle",
+        0.04
+    );
+
+
+    setTimeout(
+
+        () => {
+
+            playSound(
+                600,
+                0.08,
+                "triangle",
+                0.04
+            );
+
+        },
+
+        100
+
+    );
+
+
+    setTimeout(
+
+        () => {
+
+            playSound(
+                900,
+                0.12,
+                "triangle",
+                0.05
+            );
+
+        },
+
+        200
+
+    );
+
+}
+
+
+/* =========================================================
+   ゲーム開始
+========================================================= */
+
+function startGame() {
+
+    initAudio();
+
+
+    createField();
+
+
+    score = 0;
+
+    totalLines = 0;
+
+    level = 1;
+
+    linesAtLevelStart = 0;
+
+    gravityAccumulator = 0;
+
+
+    gameState =
+        "playing";
+
+
+    dropTimer = 0;
+
+    lastTime =
+        performance.now();
+
+
+    /*
+        7種バッグ
+    */
+
+    pieceBag = [];
+
+    refillBag();
+
+
+    /*
+        HOLD
+    */
+
+    holdType = 0;
+
+    holdUsed = false;
+
+
+    /*
+        エフェクト
+    */
+
+    particles = [];
+
+    clearingRows = [];
+
+    clearAnimationActive =
+        false;
+
+
+    hardDropEffectBlocks = [];
+
+    hardDropEffectStart = 0;
+
+
+    screenShake.intensity =
+        0;
+
+
+    comboText.alpha =
+        0;
+
+
+    /*
+        最初のブロック
+    */
+
+    createPiece();
+
+
+    startOverlay.classList.add(
+        "hidden"
+    );
+
+
+    gameOverOverlay.classList.add(
+        "hidden"
+    );
+
+
+    updateUI();
+
+    drawHold();
+
+    draw();
+
+    soundStart();
+
+
+    /*
+        STARTボタンのフォーカスを外す
+    */
+
+    if (
+        document.activeElement &&
+        document.activeElement.blur
+    ) {
+
+        document.activeElement.blur();
+
+    }
+
+}
+
+
+/* =========================================================
+   タイトルへ戻る
+========================================================= */
+
+function returnToTitle() {
+
+    gameState =
+        "title";
+
+
+    gameOverOverlay.classList.add(
+        "hidden"
+    );
+
+
+    startOverlay.classList.remove(
+        "hidden"
+    );
+
+
+    nameInput.value = "";
+
+
+    nameInput.blur();
+
+}
+
+
+/* =========================================================
+   GAME OVER
+========================================================= */
+
+function gameOver() {
+
+    gameState =
+        "gameover";
+
+
+    finalScoreElement.textContent =
+        score.toLocaleString();
+
+
+    nameInput.value =
+        "";
+
+
+    gameOverOverlay.classList.remove(
+        "hidden"
+    );
+
+
+    soundGameOver();
+
+
+    setTimeout(
+
+        () => {
+
+            nameInput.focus();
+
+        },
+
+        50
+
+    );
+
+}
+
+
+/* =========================================================
+   移動判定
+========================================================= */
+
+function canMove(
+    dx,
+    dy,
+    piece = currentPiece
+) {
+
+    for (
+        let y = 0;
+        y < CONFIG.TETRO_SIZE;
+        y++
+    ) {
+
+        for (
+            let x = 0;
+            x < CONFIG.TETRO_SIZE;
+            x++
+        ) {
+
+            if (
+                !piece[y][x]
+            ) {
+
+                continue;
+
+            }
+
+
+            const nx =
+                pieceX +
+                x +
+                dx;
+
+
+            const ny =
+                pieceY +
+                y +
+                dy;
+
+
+            if (
+                nx < 0 ||
+                nx >= CONFIG.FIELD_COLS ||
+                ny >= CONFIG.FIELD_ROWS
+            ) {
+
+                return false;
+
+            }
+
+
+            if (
+                ny >= 0 &&
+                field[ny][nx]
+            ) {
+
+                return false;
+
+            }
+
+        }
+
+    }
+
+
+    return true;
+
+}
+
+
+/* =========================================================
+   ゴースト位置更新
+========================================================= */
+
+function updateGhost() {
+
+    ghostY =
+        pieceY;
+
+
+    while (
+
+        canMoveFrom(
+
+            0,
+
+            ghostY -
+            pieceY +
+            1,
+
+            currentPiece
+
+        )
+
+    ) {
+
+        ghostY++;
+
+    }
+
+}
+
+
+/*
+    任意のY座標で判定
+*/
+
+function canMoveFrom(
+    dx,
+    dy,
+    piece
+) {
+
+    for (
+        let y = 0;
+        y < CONFIG.TETRO_SIZE;
+        y++
+    ) {
+
+        for (
+            let x = 0;
+            x < CONFIG.TETRO_SIZE;
+            x++
+        ) {
+
+            if (
+                !piece[y][x]
+            ) {
+
+                continue;
+
+            }
+
+
+            const nx =
+                pieceX +
+                x +
+                dx;
+
+
+            const ny =
+                pieceY +
+                y +
+                dy;
+
+
+            if (
+                nx < 0 ||
+                nx >= CONFIG.FIELD_COLS ||
+                ny >= CONFIG.FIELD_ROWS
+            ) {
+
+                return false;
+
+            }
+
+
+            if (
+                ny >= 0 &&
+                field[ny][nx]
+            ) {
+
+                return false;
+
+            }
+
+        }
+
+    }
+
+
+    return true;
+
+}
+
+
+/* =========================================================
+   左右移動
+========================================================= */
+
+function movePiece(
+    direction
+) {
+
+    if (
+        gameState !== "playing" ||
+        clearAnimationActive
+    ) {
+
+        return;
+
+    }
+
+
+    if (
+        canMove(
+            direction,
+            0
+        )
+    ) {
+
+        pieceX +=
+            direction;
+
+
+        updateGhost();
+
+
+        soundMove();
+
+
+        draw();
+
+    }
+
+}
+
+
+/* =========================================================
+   回転
+========================================================= */
+
+function rotatePiece() {
+
+    if (
+        gameState !== "playing" ||
+        clearAnimationActive
+    ) {
+
+        return;
+
+    }
+
+
+    const rotated = [];
+
+
+    for (
+        let y = 0;
+        y < CONFIG.TETRO_SIZE;
+        y++
+    ) {
+
+        rotated[y] = [];
+
+
+        for (
+            let x = 0;
+            x < CONFIG.TETRO_SIZE;
+            x++
+        ) {
+
+            rotated[y][x] =
+
+                currentPiece[
+
+                    CONFIG.TETRO_SIZE -
+                    1 -
+                    x
+
+                ][y];
+
+        }
+
+    }
+
+
+    const offsets =
+        [0,-1,1,-2,2];
+
+
+    for (
+        const offset of offsets
+    ) {
+
+        if (
+            canMove(
+                offset,
+                0,
+                rotated
+            )
+        ) {
+
+            pieceX +=
+                offset;
+
+
+            currentPiece =
+                rotated;
+
+
+            updateGhost();
+
+
+            soundRotate();
+
+
+            draw();
+
+
+            return;
+
+        }
+
+    }
+
+}
+
+
+/* =========================================================
+   HOLD
+========================================================= */
+
+function holdPiece() {
+
+    if (
+        gameState !== "playing" ||
+        clearAnimationActive
+    ) {
+
+        return;
+
+    }
+
+
+    /*
+        1ブロックにつき1回
+    */
+
+    if (
+        holdUsed
+    ) {
+
+        return;
+
+    }
+
+
+    /*
+        HOLDが空
+    */
+
+    if (
+        holdType === 0
+    ) {
+
+        holdType =
+            currentType;
+
+
+        createPiece();
+
+    }
+
+    else {
+
+        /*
+            現在とHOLDを交換
+        */
+
+        const oldCurrent =
+            currentType;
+
+
+        createPiece(
+            holdType
+        );
+
+
+        holdType =
+            oldCurrent;
+
+    }
+
+
+    holdUsed = true;
+
+
+    dropTimer = 0;
+
+
+    if (
+        !canMove(0,0)
+    ) {
+
+        gameOver();
+
+        return;
+
+    }
+
+
+    soundHold();
+
+
+    drawHold();
+
+
+    draw();
+
+}
+
+
+/* =========================================================
+   通常落下
+========================================================= */
+
+function dropPiece() {
+
+    if (
+        gameState !== "playing" ||
+        clearAnimationActive
+    ) {
+
+        return;
+
+    }
+
+
+    /*
+        下に移動
+    */
+
+    if (
+        canMove(0,1)
+    ) {
+
+        pieceY++;
+
+
+        updateGhost();
+
+
+        draw();
+
+
+        return;
+
+    }
+
+
+    /*
+        移動できない
+        ↓
+        固定
+    */
+
+    lockCurrentPiece();
+
+
+    soundLock();
+
+
+    /*
+        ラインを探す
+    */
+
+    const rows =
+        findFullLines();
+
+
+    if (
+        rows.length > 0
+    ) {
+
+        beginLineClear(
+            rows
+        );
+
+
+        return;
+
+    }
+
+
+    /*
+        ラインなし
+        → 次のブロック
+    */
+
+    spawnNextPiece();
+
+}
+
+
+/* =========================================================
+   ソフトドロップ
+========================================================= */
+
+function softDrop() {
+
+    if (
+        gameState !== "playing" ||
+        clearAnimationActive
+    ) {
+
+        return;
+
+    }
+
+
+    /*
+        ↓キーではスコアを加算しない
+    */
+
+    if (
+        canMove(0,1)
+    ) {
+
+        pieceY++;
+
+
+        updateGhost();
+
+
+        updateUI();
+
+
+        draw();
+
+
+        return;
+
+    }
+
+
+    /*
+        下に行けない
+        → 即固定
+    */
+
+    lockCurrentPiece();
+
+
+    soundLock();
+
+
+    const rows =
+        findFullLines();
+
+
+    if (
+        rows.length > 0
+    ) {
+
+        beginLineClear(
+            rows
+        );
+
+
+        return;
+
+    }
+
+
+    spawnNextPiece();
+
+}
+
+
+/* =========================================================
+   ハードドロップ
+========================================================= */
+
+function hardDrop() {
+
+    if (
+        gameState !== "playing" ||
+        clearAnimationActive
+    ) {
+
+        return;
+
+    }
+
+
+    /*
+        ゴースト位置まで移動
+    */
+
+    pieceY =
+        ghostY;
+
+
+    /*
+        落下距離
+    */
+
+    const distance =
+        Math.max(
+            0,
+            ghostY -
+            pieceY
+        );
+
+
+    /*
+        ★ 実際のエフェクト位置
+    */
+
+    hardDropEffectBlocks =
+        [];
+
+
+    for (
+        let y = 0;
+        y < CONFIG.TETRO_SIZE;
+        y++
+    ) {
+
+        for (
+            let x = 0;
+            x < CONFIG.TETRO_SIZE;
+            x++
+        ) {
+
+            if (
+                currentPiece[y][x]
+            ) {
+
+                hardDropEffectBlocks.push({
+
+                    x:
+                        pieceX + x,
+
+                    y:
+                        pieceY + y,
+
+                    type:
+                        currentType
+
+                });
+
+            }
+
+        }
+
+    }
+
+
+    /*
+        ハードドロップ演出
+    */
+
+    hardDropEffectStart =
+        performance.now();
+
+
+    soundHardDrop();
+
+
+    /*
+        固定
+    */
+
+    lockCurrentPiece();
+
+
+    soundLock();
+
+
+    /*
+        ラインチェック
+    */
+
+    const rows =
+        findFullLines();
+
+
+    if (
+        rows.length > 0
+    ) {
+
+        beginLineClear(
+            rows
+        );
+
+
+        return;
+
+    }
+
+
+    /*
+        次へ
+    */
+
+    spawnNextPiece();
+
+
+    dropTimer = 0;
+
+
+    draw();
+
+}
+
+
+/* =========================================================
+   ブロック固定
+========================================================= */
+
+function lockCurrentPiece() {
+
+    for (
+        let y = 0;
+        y < CONFIG.TETRO_SIZE;
+        y++
+    ) {
+
+        for (
+            let x = 0;
+            x < CONFIG.TETRO_SIZE;
+            x++
+        ) {
+
+            if (
+                !currentPiece[y][x]
+            ) {
+
+                continue;
+
+            }
+
+
+            const nx =
+                pieceX + x;
+
+
+            const ny =
+                pieceY + y;
+
+
+            if (
+                nx >= 0 &&
+                nx < CONFIG.FIELD_COLS &&
+                ny >= 0 &&
+                ny < CONFIG.FIELD_ROWS
+            ) {
+
+                field[ny][nx] =
+                    currentType;
+
+            }
+
+        }
+
+    }
+
+}
+
+
+/* =========================================================
+   ライン検索
+========================================================= */
+
+function findFullLines() {
+
+    const rows = [];
+
+
+    for (
+        let y =
+            CONFIG.FIELD_ROWS - 1;
+
+        y >= 0;
+
+        y--
+    ) {
+
+        let full =
+            true;
+
+
+        for (
+            let x = 0;
+            x < CONFIG.FIELD_COLS;
+            x++
+        ) {
+
+            if (
+                field[y][x] === 0
+            ) {
+
+                full =
+                    false;
+
+                break;
+
+            }
+
+        }
+
+
+        if (
+            full
+        ) {
+
+            rows.push(y);
+
+        }
+
+    }
+
+
+    return rows;
+
+}
+
+
+/* =========================================================
+   次のレベルまで必要なライン数
+========================================================= */
+
+function getLinesRequiredForNextLevel() {
+
+    /*
+        すべてのレベルで
+        10ラインごとにレベルアップ
+    */
+
+    return 10;
+
+}
+
+
+/* =========================================================
+   レベル更新
+========================================================= */
+
+function updateLevel() {
+
+    while (
+
+        totalLines -
+        linesAtLevelStart
+
+        >=
+
+        getLinesRequiredForNextLevel()
+
+    ) {
+
+        linesAtLevelStart +=
+            getLinesRequiredForNextLevel();
+
+
+        level++;
+
+    }
+
+}
+
+
+/* =========================================================
+   G（重力）
+========================================================= */
+
+function getGravityG() {
+
+    /*
+        レベルごとの重力
+
+        Lv1   = 1/48G
+        Lv2   = 1/43G
+        ...
+        Lv18  = 4G
+        Lv19  = 20G
+
+        Lv19以降は20G固定
+    */
+
+    const gravityTable = [
+
+        1 / 48,   // Lv1
+        1 / 43,   // Lv2
+        1 / 38,   // Lv3
+        1 / 33,   // Lv4
+        1 / 28,   // Lv5
+        1 / 23,   // Lv6
+        1 / 18,   // Lv7
+        1 / 13,   // Lv8
+        1 / 8,    // Lv9
+        1 / 6,    // Lv10
+        1 / 5,    // Lv11
+        1 / 4,    // Lv12
+        1 / 3,    // Lv13
+        1 / 2,    // Lv14
+        1,        // Lv15
+        2,        // Lv16
+        3,        // Lv17
+        4,        // Lv18
+        20        // Lv19
+
+    ];
+
+
+    return (
+
+        gravityTable[
+
+            Math.min(
+
+                level - 1,
+
+                gravityTable.length - 1
+
+            )
+
+        ]
+
+    );
+
+}
+
+
+/* =========================================================
+   ライン消去開始
+========================================================= */
+
+function beginLineClear(
+    rows
+) {
+
+    clearingRows =
+        [...rows];
+
+
+    clearAnimationActive =
+        true;
+
+
+    clearAnimationStart =
+        performance.now();
+
+
+    /*
+        画面揺れ
+    */
+
+    screenShake.intensity =
+
+        0.12 +
+        rows.length *
+        0.06;
+
+
+    /*
+        コンボ文字
+    */
+
+    const comboTexts = [
+
+        "SINGLE!",
+
+        "DOUBLE!!",
+
+        "TRIPLE!!!",
+
+        "TETRIS!!!!"
+
+    ];
+
+
+    comboText.text =
+
+        comboTexts[
+
+            Math.min(
+                rows.length - 1,
+                3
+            )
+
+        ];
+
+
+    comboText.alpha =
+        1;
+
+
+    comboText.y =
+        0;
+
+
+    /*
+        パーティクル
+    */
+
+    rows.forEach(
+
+        y => {
+
+            for (
+                let x = 0;
+                x < CONFIG.FIELD_COLS;
+                x++
+            ) {
+
+                const type =
+                    field[y][x];
+
+
+                if (!type) {
+
+                    continue;
+
+                }
+
+
+                const color =
+                    TETRO_COLORS[type];
+
+
+                const count =
+                    8 +
+                    rows.length *
+                    3;
+
+
+                for (
+                    let i = 0;
+                    i < count;
+                    i++
+                ) {
+
+                    particles.push(
+
+                        new Particle(
+
+                            x + 0.5,
+
+                            y + 0.5,
+
+                            color
+
+                        )
+
+                    );
+
+                }
+
+            }
+
+        }
+
+    );
+
+
+    /*
+        スコア
+
+        1ライン = 100
+        2ライン = 300
+        3ライン = 500
+        4ライン = 800
+
+        基礎スコア × 現在のレベル
+    */
+
+    const scoreTable = [
+
+        0,
+        100,
+        300,
+        500,
+        800
+
+    ];
+
+
+    const baseScore =
+        scoreTable[rows.length] ||
+        rows.length * 200;
+
+
+    score +=
+        baseScore *
+        level;
+
+
+    /*
+        ライン数
+    */
+
+    totalLines +=
+        rows.length;
+
+
+    /*
+        10ラインごとに
+        レベルアップ
+    */
+
+    updateLevel();
+
+
+    updateUI();
+
+
+    /*
+        効果音
+    */
+
+    soundLineClear(
+        rows.length
+    );
+
+}
+
+
+/* =========================================================
+   ラインを実際に削除
+========================================================= */
+
+function finishLineClear() {
+
+    /*
+        消去対象をSetにする
+    */
+
+    const deleteSet =
+        new Set(
+            clearingRows
+        );
+
+
+    /*
+        消えない行だけを
+        新しい配列に残す
+    */
+
+    const newField = [];
+
+
+    for (
+        let y =
+            CONFIG.FIELD_ROWS - 1;
+
+        y >= 0;
+
+        y--
+    ) {
+
+        if (
+            !deleteSet.has(y)
+        ) {
+
+            newField.unshift(
+
+                [...field[y]]
+
+            );
+
+        }
+
+    }
+
+
+    /*
+        消えた数だけ
+        空行を上に追加
+    */
+
+    while (
+        newField.length <
+        CONFIG.FIELD_ROWS
+    ) {
+
+        newField.unshift(
+
+            new Array(
+                CONFIG.FIELD_COLS
+            ).fill(0)
+
+        );
+
+    }
+
+
+    /*
+        フィールド更新
+    */
+
+    field =
+        newField;
+
+
+    /*
+        エフェクト終了
+    */
+
+    clearingRows = [];
+
+    clearAnimationActive =
+        false;
+
+
+    /*
+        次のブロック
+    */
+
+    spawnNextPiece();
+
+
+    dropTimer = 0;
+
+    gravityAccumulator = 0;
+
+
+    draw();
+
+}
+
+
+/* =========================================================
+   次のブロック
+========================================================= */
+
+function spawnNextPiece() {
+
+    createPiece();
+
+
+    /*
+        新しいブロックでは
+        HOLD可能
+    */
+
+    holdUsed = false;
+
+
+    if (
+        !canMove(0,0)
+    ) {
+
+        gameOver();
+
+        return false;
+
+    }
+
+
+    updateGhost();
+
+
+    return true;
+
+}
+
+
+/* =========================================================
+   UI
+========================================================= */
+
+function updateUI() {
+
+    scoreElement.textContent =
+
+        String(score).padStart(
+            6,
+            "0"
+        );
+
+
+    levelElement.textContent =
+        level;
+
+}
+
+
+/* =========================================================
+   Particle
+========================================================= */
+
+class Particle {
+
+    constructor(
+        x,
+        y,
+        color
+    ) {
+
+        this.x =
+            x;
+
+
+        this.y =
+            y;
+
+
+        this.vx =
+
+            (Math.random() - 0.5)
+            * 0.35;
+
+
+        this.vy =
+
+            (Math.random() - 0.5)
+            * 0.35
+            - 0.08;
+
+
+        this.life =
+            1;
+
+
+        this.decay =
+
+            0.025 +
+            Math.random() * 0.02;
+
+
+        this.size =
+
+            Math.random() * 0.22
+            + 0.08;
+
+
+        this.color =
+            color;
+
+    }
+
+
+    update() {
+
+        this.x +=
+            this.vx;
+
+
+        this.y +=
+            this.vy;
+
+
+        this.vy +=
+            0.012;
+
+
+        this.life -=
+            this.decay;
+
+    }
+
+
+    draw() {
+
+        if (
+            this.life <= 0
+        ) {
+
+            return;
+
+        }
+
+
+        ctx.save();
+
+
+        ctx.globalAlpha =
+            this.life;
+
+
+        ctx.fillStyle =
+            this.color;
+
+
+        ctx.shadowColor =
+            this.color;
+
+
+        ctx.shadowBlur =
+            8;
+
+
+        ctx.fillRect(
+
+            this.x *
+                CONFIG.BLOCK_SIZE,
+
+            this.y *
+                CONFIG.BLOCK_SIZE,
+
+            this.size *
+                CONFIG.BLOCK_SIZE,
+
+            this.size *
+                CONFIG.BLOCK_SIZE
+
+        );
+
+
+        ctx.restore();
+
+    }
+
+}
+
+
+/* =========================================================
+   背景
+========================================================= */
+
+function drawFieldBackground() {
+
+    ctx.fillStyle =
+        "#02060b";
+
+
+    ctx.fillRect(
+
+        0,
+
+        0,
+
+        canvas.width,
+
+        canvas.height
+
+    );
+
+
+    /*
+        グリッド
+    */
+
+    for (
+        let y = 0;
+        y < CONFIG.FIELD_ROWS;
+        y++
+    ) {
+
+        for (
+            let x = 0;
+            x < CONFIG.FIELD_COLS;
+            x++
+        ) {
+
+            ctx.strokeStyle =
+                "rgba(30,140,190,0.14)";
+
+
+            ctx.lineWidth =
+                1;
+
+
+            ctx.strokeRect(
+
+                x *
+                    CONFIG.BLOCK_SIZE,
+
+                y *
+                    CONFIG.BLOCK_SIZE,
+
+                CONFIG.BLOCK_SIZE,
+
+                CONFIG.BLOCK_SIZE
+
+            );
+
+        }
+
+    }
+
+}
+
+
+/* =========================================================
+   ブロック描画
+========================================================= */
+
+function drawBlock(
+    x,
+    y,
+    colorIndex
+) {
+
+    const size =
+        CONFIG.BLOCK_SIZE;
+
+
+    const px =
+        x * size;
+
+
+    const py =
+        y * size;
+
+
+    const color =
+        TETRO_COLORS[
+            colorIndex
+        ];
+
+
+    /*
+        影
+    */
+
+    ctx.fillStyle =
+        "rgba(0,0,0,0.3)";
+
+
+    ctx.fillRect(
+
+        px,
+
+        py,
+
+        size,
+
+        size
+
+    );
+
+
+    /*
+        グラデーション
+    */
+
+    const gradient =
+        ctx.createLinearGradient(
+
+            px,
+
+            py,
+
+            px + size,
+
+            py + size
+
+        );
+
+
+    gradient.addColorStop(
+
+        0,
+
+        "#ffffff"
+
+    );
+
+
+    gradient.addColorStop(
+
+        0.12,
+
+        color
+
+    );
+
+
+    gradient.addColorStop(
+
+        0.55,
+
+        color
+
+    );
+
+
+    gradient.addColorStop(
+
+        1,
+
+        "#111111"
+
+    );
+
+
+    ctx.fillStyle =
+        gradient;
+
+
+    ctx.fillRect(
+
+        px + 2,
+
+        py + 2,
+
+        size - 4,
+
+        size - 4
+
+    );
+
+
+    /*
+        光沢
+    */
+
+    ctx.fillStyle =
+        "rgba(255,255,255,0.35)";
+
+
+    ctx.fillRect(
+
+        px + 3,
+
+        py + 3,
+
+        size - 6,
+
+        Math.max(
+            2,
+            size * 0.1
+        )
+
+    );
+
+
+    /*
+        枠
+    */
+
+    ctx.strokeStyle =
+        "rgba(255,255,255,0.55)";
+
+
+    ctx.lineWidth =
+        1;
+
+
+    ctx.strokeRect(
+
+        px + 2,
+
+        py + 2,
+
+        size - 4,
+
+        size - 4
+
+    );
+
+}
+
+
+/* =========================================================
+   ゴーストピース
+========================================================= */
+
+function drawGhost() {
+
+    if (
+        !currentPiece ||
+        gameState !== "playing"
+    ) {
+
+        return;
+
+    }
+
+
+    /*
+        現在位置とゴースト位置が同じなら
+        表示しない
+    */
+
+    if (
+        ghostY === pieceY
+    ) {
+
+        return;
+
+    }
+
+
+    ctx.save();
+
+
+    /*
+        白い半透明の枠
+    */
+
+    ctx.globalAlpha =
+        0.7;
+
+
+    ctx.strokeStyle =
+        "#ffffff";
+
+
+    ctx.lineWidth =
+        2;
+
+
+    ctx.shadowColor =
+        "#ffffff";
+
+
+    ctx.shadowBlur =
+        5;
+
+
+    for (
+        let y = 0;
+        y < CONFIG.TETRO_SIZE;
+        y++
+    ) {
+
+        for (
+            let x = 0;
+            x < CONFIG.TETRO_SIZE;
+            x++
+        ) {
+
+            if (
+                !currentPiece[y][x]
+            ) {
+
+                continue;
+
+            }
+
+
+            const px =
+
+                (pieceX + x) *
+                CONFIG.BLOCK_SIZE;
+
+
+            const py =
+
+                (ghostY + y) *
+                CONFIG.BLOCK_SIZE;
+
+
+            /*
+                塗りつぶしはせず、
+                外枠だけ表示
+            */
+
+            ctx.strokeRect(
+
+                px + 3,
+
+                py + 3,
+
+                CONFIG.BLOCK_SIZE - 6,
+
+                CONFIG.BLOCK_SIZE - 6
+
+            );
+
+        }
+
+    }
+
+
+    ctx.restore();
+
+}
+
+
+/* =========================================================
+   ハードドロップエフェクト
+========================================================= */
+
+function drawHardDropEffect(
+    time
+) {
+
+    if (
+        hardDropEffectBlocks.length === 0
+    ) {
+
+        return;
+
+    }
+
+
+    const elapsed =
+        time -
+        hardDropEffectStart;
+
+
+    if (
+        elapsed >=
+        CONFIG.HARD_DROP_EFFECT_TIME
+    ) {
+
+        hardDropEffectBlocks = [];
+
+        return;
+
+    }
+
+
+    const progress =
+        elapsed /
+        CONFIG.HARD_DROP_EFFECT_TIME;
+
+
+    const alpha =
+        1 - progress;
+
+
+    ctx.save();
+
+
+    ctx.globalAlpha =
+        alpha;
+
+
+    ctx.strokeStyle =
+        "#ffffff";
+
+
+    ctx.lineWidth =
+        3;
+
+
+    ctx.shadowColor =
+        "#ffffff";
+
+
+    ctx.shadowBlur =
+
+        8 +
+        (1 - progress) * 14;
+
+
+    hardDropEffectBlocks.forEach(
+
+        block => {
+
+            const px =
+                block.x *
+                CONFIG.BLOCK_SIZE;
+
+
+            const py =
+                block.y *
+                CONFIG.BLOCK_SIZE;
+
+
+            ctx.strokeRect(
+
+                px + 1,
+
+                py + 1,
+
+                CONFIG.BLOCK_SIZE - 2,
+
+                CONFIG.BLOCK_SIZE - 2
+
+            );
+
+        }
+
+    );
+
+
+    ctx.restore();
+
+}
+
+
+/* =========================================================
+   ライン消去エフェクト
+========================================================= */
+
+function drawClearEffect() {
+
+    if (
+        !clearAnimationActive
+    ) {
+
+        return;
+
+    }
+
+
+    const elapsed =
+        performance.now() -
+        clearAnimationStart;
+
+
+    const progress =
+        Math.min(
+
+            elapsed /
+            CONFIG.LINE_CLEAR_TIME,
+
+            1
+
+        );
+
+
+    /*
+        点滅
+    */
+
+    const flash =
+
+        Math.sin(
+
+            progress *
+            Math.PI *
+            5
+
+        )
+        * 0.5
+        + 0.5;
+
+
+    ctx.save();
+
+
+    ctx.globalAlpha =
+        flash;
+
+
+    ctx.fillStyle =
+        "#ffffff";
+
+
+    clearingRows.forEach(
+
+        y => {
+
+            ctx.fillRect(
+
+                0,
+
+                y *
+                    CONFIG.BLOCK_SIZE,
+
+                canvas.width,
+
+                CONFIG.BLOCK_SIZE
+
+            );
+
+        }
+
+    );
+
+
+    ctx.restore();
+
+}
+
+
+/* =========================================================
+   コンボ文字
+========================================================= */
+
+function drawComboText() {
+
+    if (
+        comboText.alpha <= 0
+    ) {
+
+        return;
+
+    }
+
+
+    ctx.save();
+
+
+    ctx.globalAlpha =
+        comboText.alpha;
+
+
+    ctx.fillStyle =
+        "#FFD700";
+
+
+    ctx.shadowColor =
+        "#FFD700";
+
+
+    ctx.shadowBlur =
+        10;
+
+
+    ctx.font =
+        "bold 25px Arial";
+
+
+    ctx.textAlign =
+        "center";
+
+
+    ctx.fillText(
+
+        comboText.text,
+
+        canvas.width / 2,
+
+        55 -
+        comboText.y
+
+    );
+
+
+    ctx.restore();
+
+}
+
+
+/* =========================================================
+   HOLD描画
+========================================================= */
+
+function drawHold() {
+
+    const width =
+        holdCanvas.width;
+
+
+    const height =
+        holdCanvas.height;
+
+
+    holdCtx.clearRect(
+
+        0,
+
+        0,
+
+        width,
+
+        height
+
+    );
+
+
+    /*
+        背景
+    */
+
+    holdCtx.fillStyle =
+        "#02060b";
+
+
+    holdCtx.fillRect(
+
+        0,
+
+        0,
+
+        width,
+
+        height
+
+    );
+
+
+    /*
+        グリッド
+    */
+
+    const grid =
+        20;
+
+
+    for (
+        let y = 0;
+        y < 5;
+        y++
+    ) {
+
+        for (
+            let x = 0;
+            x < 5;
+            x++
+        ) {
+
+            holdCtx.strokeStyle =
+                "rgba(30,140,190,0.12)";
+
+
+            holdCtx.strokeRect(
+
+                x * grid,
+
+                y * grid,
+
+                grid,
+
+                grid
+
+            );
+
+        }
+
+    }
+
+
+    /*
+        空
+    */
+
+    if (
+        holdType === 0
+    ) {
+
+        holdCtx.fillStyle =
+            "#36546a";
+
+
+        holdCtx.font =
+            "11px Arial";
+
+
+        holdCtx.textAlign =
+            "center";
+
+
+        holdCtx.fillText(
+
+            "EMPTY",
+
+            width / 2,
+
+            height / 2 + 4
+
+        );
+
+
+        return;
+
+    }
+
+
+    /*
+        HOLD中
+    */
+
+    const piece =
+        TETRO_TYPES[
+            holdType
+        ];
+
+
+    const size =
+        20;
+
+
+    const offset =
+        10;
+
+
+    for (
+        let y = 0;
+        y < 4;
+        y++
+    ) {
+
+        for (
+            let x = 0;
+            x < 4;
+            x++
+        ) {
+
+            if (
+                piece[y][x]
+            ) {
+
+                drawHoldBlock(
+
+                    x * size + offset,
+
+                    y * size + offset,
+
+                    holdType,
+
+                    size
+
+                );
+
+            }
+
+        }
+
+    }
+
+}
+
+
+/*
+    HOLD用ブロック
+*/
+
+function drawHoldBlock(
+    px,
+    py,
+    colorIndex,
+    size
+) {
+
+    const color =
+        TETRO_COLORS[
+            colorIndex
+        ];
+
+
+    const gradient =
+        holdCtx.createLinearGradient(
+
+            px,
+
+            py,
+
+            px + size,
+
+            py + size
+
+        );
+
+
+    gradient.addColorStop(
+        0,
+        "#ffffff"
+    );
+
+
+    gradient.addColorStop(
+        0.15,
+        color
+    );
+
+
+    gradient.addColorStop(
+        0.6,
+        color
+    );
+
+
+    gradient.addColorStop(
+        1,
+        "#111111"
+    );
+
+
+    holdCtx.fillStyle =
+        gradient;
+
+
+    holdCtx.fillRect(
+
+        px + 1,
+
+        py + 1,
+
+        size - 2,
+
+        size - 2
+
+    );
+
+
+    holdCtx.strokeStyle =
+        "rgba(255,255,255,0.55)";
+
+
+    holdCtx.strokeRect(
+
+        px + 1,
+
+        py + 1,
+
+        size - 2,
+
+        size - 2
+
+    );
+
+}
+
+
+/* =========================================================
+   全体描画
+========================================================= */
+
+function draw(
+    time = performance.now()
+) {
+
+    ctx.save();
+
+
+    /*
+        画面揺れ
+    */
+
+    if (
+        screenShake.intensity > 0
+    ) {
+
+        screenShake.x =
+
+            (Math.random() - 0.5) *
+            screenShake.intensity *
+            CONFIG.BLOCK_SIZE;
+
+
+        screenShake.y =
+
+            (Math.random() - 0.5) *
+            screenShake.intensity *
+            CONFIG.BLOCK_SIZE;
+
+
+        screenShake.intensity *=
+            0.88;
+
+
+        ctx.translate(
+
+            screenShake.x,
+
+            screenShake.y
+
+        );
+
+    }
+
+
+    /*
+        背景
+    */
+
+    drawFieldBackground();
+
+
+    /*
+        固定ブロック
+    */
+
+    for (
+        let y = 0;
+        y < CONFIG.FIELD_ROWS;
+        y++
+    ) {
+
+        for (
+            let x = 0;
+            x < CONFIG.FIELD_COLS;
+            x++
+        ) {
+
+            if (
+                field[y][x]
+            ) {
+
+                drawBlock(
+
+                    x,
+
+                    y,
+
+                    field[y][x]
+
+                );
+
+            }
+
+        }
+
+    }
+
+
+    /*
+        ★ ゴースト
+        現在のブロックより先に描画
+    */
+
+    drawGhost();
+
+
+    /*
+        現在のブロック
+    */
+
+    if (
+        currentPiece &&
+        gameState === "playing"
+    ) {
+
+        for (
+            let y = 0;
+            y < CONFIG.TETRO_SIZE;
+            y++
+        ) {
+
+            for (
+                let x = 0;
+                x < CONFIG.TETRO_SIZE;
+                x++
+            ) {
+
+                if (
+                    currentPiece[y][x]
+                ) {
+
+                    drawBlock(
+
+                        pieceX + x,
+
+                        pieceY + y,
+
+                        currentType
+
+                    );
+
+                }
+
+            }
+
+        }
+
+    }
+
+
+    /*
+        ライン消去
+    */
+
+    drawClearEffect();
+
+
+    /*
+        ハードドロップ発光
+    */
+
+    drawHardDropEffect(
+        time
+    );
+
+
+    /*
+        パーティクル
+    */
+
+    particles.forEach(
+
+        particle => {
+
+            particle.draw();
+
+        }
+
+    );
+
+
+    /*
+        コンボ
+    */
+
+    drawComboText();
+
+
+    ctx.restore();
+
+}
+
+
+/* =========================================================
+   メインゲームループ
+========================================================= */
+
+function gameLoop(
+    time
+) {
+
+    if (
+        lastTime === 0
+    ) {
+
+        lastTime =
+            time;
+
+    }
+
+
+    const delta =
+        time -
+        lastTime;
+
+
+    lastTime =
+        time;
+
+
+    /*
+        パーティクル更新
+    */
+
+    for (
+        let i =
+            particles.length - 1;
+
+        i >= 0;
+
+        i--
+    ) {
+
+        particles[i].update();
+
+
+        if (
+            particles[i].life <= 0
+        ) {
+
+            particles.splice(
+                i,
+                1
+            );
+
+        }
+
+    }
+
+
+    /*
+        コンボ文字
+    */
+
+    if (
+        comboText.alpha > 0
+    ) {
+
+        comboText.alpha -=
+            0.025;
+
+
+        comboText.y +=
+            0.06;
+
+    }
+
+
+    /*
+        ライン消去中
+    */
+
+    if (
+        clearAnimationActive
+    ) {
+
+        const elapsed =
+            time -
+            clearAnimationStart;
+
+
+        if (
+            elapsed >=
+            CONFIG.LINE_CLEAR_TIME
+        ) {
+
+            finishLineClear();
+
+        }
+
+    }
+
+
+    /*
+        通常ゲーム
+    */
+
+    else if (
+        gameState === "playing"
+    ) {
+
+        /*
+            60fps基準でGを計算
+        */
+
+        const frameRatio =
+
+            delta /
+            (1000 / 60);
+
+
+        gravityAccumulator +=
+
+            getGravityG() *
+            frameRatio;
+
+
+        /*
+            1G分たまるごとに
+            1マス落下
+        */
+
+        let gravitySteps = 0;
+
+
+        while (
+
+            gravityAccumulator >= 1 &&
+
+            gameState === "playing" &&
+
+            !clearAnimationActive &&
+
+            gravitySteps < 20
+
+        ) {
+
+            gravityAccumulator -=
+                1;
+
+
+            gravitySteps++;
+
+
+            dropPiece();
+
+        }
+
+    }
+
+
+    /*
+        描画
+    */
+
+    draw(time);
+
+
+    /*
+        次のフレーム
+    */
+
+    requestAnimationFrame(
+        gameLoop
+    );
+
+}
+
+
+/* =========================================================
+   キーボード操作
+========================================================= */
+
+document.onkeydown =
+function(event) {
+
+
+    /*
+        Z
+        ハードドロップ
+    */
+
+    if (
+        event.code === "KeyZ"
+    ) {
+
+        event.preventDefault();
+
+
+        if (
+
+            gameState === "playing" &&
+
+            !clearAnimationActive &&
+
+            !event.repeat
+
+        ) {
+
+            hardDrop();
+
+        }
+
+
+        return;
+
+    }
+
+
+    /*
+        プレイ中以外
+    */
+
+    if (
+        gameState !== "playing"
+    ) {
+
+        return;
+
+    }
+
+
+    /*
+        ライン消去中は操作停止
+    */
+
+    if (
+        clearAnimationActive
+    ) {
+
+        return;
+
+    }
+
+
+    /*
+        左
+    */
+
+    if (
+        event.key === "ArrowLeft"
+    ) {
+
+        event.preventDefault();
+
+        movePiece(-1);
+
+        return;
+
+    }
+
+
+    /*
+        右
+    */
+
+    if (
+        event.key === "ArrowRight"
+    ) {
+
+        event.preventDefault();
+
+        movePiece(1);
+
+        return;
+
+    }
+
+
+    /*
+        下
+    */
+
+    if (
+        event.key === "ArrowDown"
+    ) {
+
+        event.preventDefault();
+
+        softDrop();
+
+        return;
+
+    }
+
+
+    /*
+        上
+    */
+
+    if (
+        event.key === "ArrowUp"
+    ) {
+
+        event.preventDefault();
+
+        rotatePiece();
+
+        return;
+
+    }
+
+
+    /*
+        Shift = HOLD
+    */
+
+    if (
+        event.key === "Shift"
+    ) {
+
+        event.preventDefault();
+
+
+        if (
+            event.repeat
+        ) {
+
+            return;
+
+        }
+
+
+        holdPiece();
+
+        return;
+
+    }
+
+};
+
+
+/* =========================================================
+   START
+========================================================= */
+
+startButton.addEventListener(
+
+    "click",
+
+    function(event) {
+
+        event.preventDefault();
+
+        startGame();
+
+
+        startButton.blur();
+
+    }
+
+);
+
+
+/* =========================================================
+   スコア登録
+========================================================= */
+
+registerButton.addEventListener(
+
+    "click",
+
+    function(event) {
+
+        event.preventDefault();
+
+
+        const name =
+            nameInput.value.trim();
+
+
+        /*
+            名前が空の場合
+        */
+
+        if (
+            name.length === 0
+        ) {
+
+            nameInput.focus();
+
+            return;
+
+        }
+
+
+        /*
+            スコア登録
+        */
+
+        registerScore(
+
+            name,
+
+            score
+
+        );
+
+
+        /*
+            タイトルへ戻る
+        */
+
+        returnToTitle();
+
+    }
+
+);
+
+
+/* =========================================================
+   スコア登録しない
+========================================================= */
+
+skipRegisterButton.addEventListener(
+
+    "click",
+
+    function(event) {
+
+        event.preventDefault();
+
+
+        returnToTitle();
+
+    }
+
+);
+
+
+/* =========================================================
+   名前入力
+========================================================= */
+
+nameInput.addEventListener(
+
+    "keydown",
+
+    function(event) {
+
+        /*
+            Enterでは登録しない
+        */
+
+        if (
+            event.key === "Enter"
+        ) {
+
+            event.preventDefault();
+
+        }
+
+    }
+
+);
+
+
+/* =========================================================
+   SOUND
+========================================================= */
+
+soundButton.addEventListener(
+
+    "click",
+
+    function(event) {
+
+        event.preventDefault();
+
+
+        soundEnabled =
+            !soundEnabled;
+
+
+        soundButton.textContent =
+
+            soundEnabled
+                ? "🔊 SOUND : ON"
+                : "🔇 SOUND : OFF";
+
+
+        if (
+            soundEnabled
+        ) {
+
+            initAudio();
+
+
+            playSound(
+
+                700,
+
+                0.08,
+
+                "triangle",
+
+                0.04
+
+            );
+
+        }
+
+
+        soundButton.blur();
+
+    }
+
+);
+
+
+/* =========================================================
+   初期化
+========================================================= */
+
+createField();
+
+updateUI();
+
+updateRankingDisplay();
+
+draw();
+
+drawHold();
+
+
+requestAnimationFrame(
+    gameLoop
+);
+
+</script>
+
+</body>
+</html>
